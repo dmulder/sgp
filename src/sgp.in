@@ -1,0 +1,84 @@
+#!/usr/bin/python
+import argparse, os
+from samba.auth import system_session
+from samba.net import Net
+from samba.dcerpc import nbt
+from samba import smb
+import logging
+from samba.param import LoadParm
+from samba.credentials import Credentials
+
+logger = None
+
+def get_loadparm(configfile=None):
+    lp = LoadParm()
+    if configfile is not None:
+        lp.load(configfile)
+    elif os.getenv("SMB_CONF_PATH") is not None:
+        lp.load(os.getenv("SMB_CONF_PATH"))
+    else:
+        lp.load_default()
+    return lp
+
+def get_credentials(lp, machine=True, user=None, password=None):
+    creds = Credentials()
+    creds.guess(lp)
+    if machine:
+        creds.set_machine_account(lp)
+    elif user and password:
+        creds.set_username(user)
+        creds.set_password(password)
+    else:
+        creds.set_cmdline_callbacks()
+
+    return creds
+
+def gpapply(args, unknownargs):
+    pass
+
+def unapply(args, unknownargs):
+    pass
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="sgp: Applies Group Policy via Samba", formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-l', help='Turn on logging', , action='store_true')
+    parser.add_argument('-g', help='Logging at a given level [0-6]')
+    parser.add_argument('-d', help='Debug level')
+    parser.add_argument('-s', '--configfile', help='Configuration file')
+    subparsers = parser.add_subparsers()
+
+    apply_parser = subparsers.add_parser('apply')
+    apply_parser.add_argument('-M', help='Apply mode, possible values: logon, startup, or refresh')
+    apply_parser.add_argument('-u', help='Name of the user for which to apply policy')
+    apply_parser.add_argument('cse_name', help='Name of a single client side extension to apply')
+    apply_parser.set_defaults(func=gpapply)
+
+    unapply_parser = subparsers.add_parser('unapply')
+    unapply_parser.add_argument('-u', help='Name of the user for which to unapply policy')
+    unapply_parser.add_argument('cse_name', help='Name of a single client side extension to unapply')
+    unapply_parser.set_defaults(func=unapply)
+
+    args, unknownargs = parser.parse_known_args()
+
+    # Set up logging
+    logger = logging.getLogger('samba_gpoupdate')
+    if args.l:
+        logger.addHandler(logging.SysLogHandler(address='/dev/log'))
+    else:
+        logger.addHandler(logging.StreamHandler(sys.stdout))
+    log_level = args.g if args.g else 0
+    if log_level = 0:
+        logger.setLevel(logging.NOTSET)
+    elif log_level = 1:
+        logger.setLevel(logging.DEBUG)
+    elif log_level = 2:
+        logger.setLevel(logging.INFO)
+    elif log_level = 3:
+        logger.setLevel(logging.WARNING)
+    elif log_level = 4:
+        logger.setLevel(logging.ERROR)
+    elif log_level = 5:
+        logger.setLevel(logging.CRITICAL)
+
+    exit(args.func(args, unknownargs))
+
