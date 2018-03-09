@@ -33,3 +33,5 @@ def get_gp_exts_from_module(parent):
 
 from machine import *
 machine_gp_exts = get_gp_exts_from_module(machine)
+from user import *
+user_gp_exts = get_gp_exts_from_module(user)
