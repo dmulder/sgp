@@ -41,7 +41,7 @@ def unapply(args, unknownargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="sgp: Applies Group Policy via Samba", formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-l', help='Turn on logging', , action='store_true')
+    parser.add_argument('-l', help='Turn on logging', action='store_true')
     parser.add_argument('-g', help='Logging at a given level [0-6]')
     parser.add_argument('-d', help='Debug level')
     parser.add_argument('-s', '--configfile', help='Configuration file')
@@ -67,17 +67,17 @@ if __name__ == "__main__":
     else:
         logger.addHandler(logging.StreamHandler(sys.stdout))
     log_level = args.g if args.g else 0
-    if log_level = 0:
+    if log_level == 0:
         logger.setLevel(logging.NOTSET)
-    elif log_level = 1:
+    elif log_level == 1:
         logger.setLevel(logging.DEBUG)
-    elif log_level = 2:
+    elif log_level == 2:
         logger.setLevel(logging.INFO)
-    elif log_level = 3:
+    elif log_level == 3:
         logger.setLevel(logging.WARNING)
-    elif log_level = 4:
+    elif log_level == 4:
         logger.setLevel(logging.ERROR)
-    elif log_level = 5:
+    elif log_level == 5:
         logger.setLevel(logging.CRITICAL)
 
     exit(args.func(args, unknownargs))
