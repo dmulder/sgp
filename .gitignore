@@ -110,3 +110,4 @@ missing
 Makefile
 config.status
 src/sgp
+src/install_files
