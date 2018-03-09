@@ -1,14 +1,43 @@
 #!/usr/bin/python
-import argparse, os
+import argparse, os, sys
 from samba.auth import system_session
 from samba.net import Net
 from samba.dcerpc import nbt
 from samba import smb
+import samba.gpo as gpo
 import logging
 from samba.param import LoadParm
 from samba.credentials import Credentials
+from samba.gpclass import *
+import gp_exts
 
 logger = None
+
+''' Fetch the hostname of a writable DC '''
+def get_dc_hostname(creds, lp):
+    net = Net(creds=creds, lp=lp)
+    cldap_ret = net.finddc(domain=lp.get('realm'), flags=(nbt.NBT_SERVER_LDAP |
+        nbt.NBT_SERVER_DS))
+    return cldap_ret.pdc_dns_name
+
+''' Fetch a list of GUIDs for applicable GPOs '''
+def get_gpo_list(dc_hostname, creds, lp):
+    gpos = []
+    ads = gpo.ADS_STRUCT(dc_hostname, lp, creds)
+    if ads.connect():
+        gpos = ads.get_gpo_list(creds.get_username())
+    return gpos
+
+def gpo_version(conn, path):
+    # gpo.gpo_get_sysvol_gpt_version() reads the GPT.INI from a local file.
+    # We store the file locally here so it can be read on a none-kdc client.
+    local_path = os.path.join(lp.get('cache directory'), 'gpt', path, 'GPT.INI')
+    if not os.path.exists(os.path.dirname(local_path)):
+        os.makedirs(os.path.dirname(local_path), 0o700)
+    data = conn.loadfile(os.path.join(path, 'GPT.INI').replace('/', '\\'))
+    encoding = chardet.detect(data)
+    open(local_path, 'w').write(data.decode(encoding['encoding']))
+    return int(gpo.gpo_get_sysvol_gpt_version(os.path.dirname(local_path))[1])
 
 def get_loadparm(configfile=None):
     lp = LoadParm()
@@ -34,7 +63,55 @@ def get_credentials(lp, machine=True, user=None, password=None):
     return creds
 
 def gpapply(args, unknownargs):
-    pass
+    global logger
+    lp = get_loadparm(args.configfile)
+    creds = None
+    gp_extensions = []
+    if args.u:
+        creds = get_credentials(lp, False, args.u, args.w)
+        for ext in gp_exts.user_gp_exts:
+            gp_extensions.append(ext(logger, creds))
+    else:
+        creds = get_credentials(lp)
+        for ext in gp_exts.machine_gp_exts:
+            gp_extensions.append(ext(logger))
+
+    cache_dir = lp.get('cache directory')
+    store = GPOStorage(os.path.join(cache_dir, 'gpo.tdb'))
+
+    gp_db = store.get_gplog(creds.get_username())
+    dc_hostname = get_dc_hostname(creds, lp)
+    try:
+        conn =  smb.SMB(dc_hostname, 'sysvol', lp=lp, creds=creds)
+    except:
+        logger.error('Error connecting to \'%s\' using SMB' % dc_hostname)
+        raise
+    gpos = get_gpo_list(dc_hostname, creds, lp)
+
+    for gpo_obj in gpos:
+        guid = gpo_obj.name
+        if guid == 'Local Policy':
+            continue
+        path = os.path.join(lp.get('realm').lower(), 'Policies', guid)
+        version = gpo_version(conn, path)
+        if version != store.get_int(guid):
+            logger.info('GPO %s has changed' % guid)
+            gp_db.state(GPOSTATE.APPLY)
+        else:
+            gp_db.state(GPOSTATE.ENFORCE)
+        gp_db.set_guid(guid)
+        store.start()
+        for ext in gp_extensions:
+            try:
+                ext.parse(ext.list(path), test_ldb, conn, gp_db, lp)
+            except Exception as e:
+                logger.error('Failed to parse gpo %s for extension %s' % \
+                    (guid, str(ext)))
+                logger.error('Message was: ' + str(e))
+                store.cancel()
+                continue
+        store.store(guid, '%i' % version)
+        store.commit()
 
 def unapply(args, unknownargs):
     pass
@@ -50,12 +127,13 @@ if __name__ == "__main__":
     apply_parser = subparsers.add_parser('apply')
     apply_parser.add_argument('-M', help='Apply mode, possible values: logon, startup, or refresh')
     apply_parser.add_argument('-u', help='Name of the user for which to apply policy')
+    apply_parser.add_argument('-w', help='User password')
     apply_parser.add_argument('cse_name', help='Name of a single client side extension to apply')
     apply_parser.set_defaults(func=gpapply)
 
     unapply_parser = subparsers.add_parser('unapply')
     unapply_parser.add_argument('-u', help='Name of the user for which to unapply policy')
-    unapply_parser.add_argument('cse_name', help='Name of a single client side extension to unapply')
+    unapply_parser.add_argument('cse_name', help='Name of a single client side extension to unapply', nargs='?')
     unapply_parser.set_defaults(func=unapply)
 
     args, unknownargs = parser.parse_known_args()

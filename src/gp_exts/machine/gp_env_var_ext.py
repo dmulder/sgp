@@ -1,5 +1,5 @@
-from samba.gpclass import gp_ext, file_to
-from samba.gp_file_append import ini_file_append
+from samba.gpclass import gp_ext
+from gp_exts.gp_file_append import ini_file_append, file_to
 import xml.etree.ElementTree as etree
 import re, os, os.path
 
