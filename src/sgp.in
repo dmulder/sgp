@@ -78,12 +78,12 @@ def unapply(args):
     unapply_gp(lp, creds, None, logger, store, gp_extensions)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="sgp: Applies Group Policy via Samba", formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description="sgp: Applies Group Policy via Samba", formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     parser.add_argument('-l', help='Turn on logging', action='store_true')
     parser.add_argument('-g', help='Logging at a given level [0-6]')
     parser.add_argument('-d', help='Debug level')
     parser.add_argument('-s', '--configfile', help='Configuration file')
-    parser.add_argument('-M', '--machine', help='Apply machine policy',
+    parser.add_argument('-M', '--machine', help='Apply machine policy, this option is provided for compatibitlity with the winbind gpo callback',
                       action='store_true', default=False)
 
     args, _ = parser.parse_known_args()
@@ -110,23 +110,22 @@ if __name__ == "__main__":
 
     if args.machine:
         gpapply(None)
-        exit(0)
+    else:
+        subparsers = parser.add_subparsers()
 
-    subparsers = parser.add_subparsers()
+        apply_parser = subparsers.add_parser('apply')
+        apply_parser.add_argument('-M', help='Apply mode, possible values: logon, startup, or refresh')
+        apply_parser.add_argument('-u', help='Name of the user for which to apply policy')
+        apply_parser.add_argument('-w', help='User password')
+        apply_parser.add_argument('cse_name', help='Name of a single client side extension to apply', nargs='?')
+        apply_parser.set_defaults(func=gpapply)
 
-    apply_parser = subparsers.add_parser('apply')
-    apply_parser.add_argument('-M', help='Apply mode, possible values: logon, startup, or refresh')
-    apply_parser.add_argument('-u', help='Name of the user for which to apply policy')
-    apply_parser.add_argument('-w', help='User password')
-    apply_parser.add_argument('cse_name', help='Name of a single client side extension to apply', nargs='?')
-    apply_parser.set_defaults(func=gpapply)
+        unapply_parser = subparsers.add_parser('unapply')
+        unapply_parser.add_argument('-u', help='Name of the user for which to unapply policy')
+        unapply_parser.add_argument('cse_name', help='Name of a single client side extension to unapply', nargs='?')
+        unapply_parser.set_defaults(func=unapply)
 
-    unapply_parser = subparsers.add_parser('unapply')
-    unapply_parser.add_argument('-u', help='Name of the user for which to unapply policy')
-    unapply_parser.add_argument('cse_name', help='Name of a single client side extension to unapply', nargs='?')
-    unapply_parser.set_defaults(func=unapply)
+        args = parser.parse_args()
 
-    args = parser.parse_args()
-
-    exit(args.func(args))
+        exit(args.func(args))
 
