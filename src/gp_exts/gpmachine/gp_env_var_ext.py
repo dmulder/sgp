@@ -1,9 +1,9 @@
-from samba.gpclass import gp_ext
-from gp_exts.gp_file_append import ini_file_append, file_to
+from samba.gpclass import gp_ext, file_to
+from gp_exts.gp_file_append import ini_file_append
 import xml.etree.ElementTree as etree
 import re, os, os.path
 
-sysconfdir = 'st/ad_dc/etc'
+sysconfdir = '/etc'
 
 class xml_to_env(file_to):
 
@@ -93,7 +93,6 @@ class gp_environment_variable_ext(gp_ext):
                    self.ldb,
                    self.gp_db,
                    self.lp,
-                   self.creds,
                    att,
                    env_var.find('Properties').attrib).update_samba()
             self.gp_db.commit()

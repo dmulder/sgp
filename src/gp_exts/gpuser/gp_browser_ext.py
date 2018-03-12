@@ -1,5 +1,5 @@
-from samba.gpclass import gp_ext
-from gp_exts.gp_file_append import ini_file_append, file_to, gp_inf_ext
+from samba.gpclass import gp_ext, file_to, gp_inf_ext
+from gp_exts.gp_file_append import ini_file_append
 import os, pwd
 from subprocess import Popen, PIPE
 

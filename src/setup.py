@@ -8,5 +8,5 @@ SRC_PATH = os.path.relpath(os.path.dirname(__file__))
 setup(name='gp_exts',
       description='Group Policy Client Side Extensions',
       package_dir={'': SRC_PATH},
-      packages=['gp_exts', 'gp_exts.machine']
+      packages=['gp_exts', 'gp_exts.gpmachine', 'gp_exts.gpuser']
      )

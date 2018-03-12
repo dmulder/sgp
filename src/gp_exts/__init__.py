@@ -31,7 +31,7 @@ def get_gp_exts_from_module(parent):
                 parent_gp_exts.append(cls[-1])
     return parent_gp_exts
 
-from machine import *
-machine_gp_exts = get_gp_exts_from_module(machine)
-from user import *
-user_gp_exts = get_gp_exts_from_module(user)
+from gpmachine import *
+machine_gp_exts = get_gp_exts_from_module(gpmachine)
+from gpuser import *
+user_gp_exts = get_gp_exts_from_module(gpuser)
