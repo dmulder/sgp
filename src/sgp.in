@@ -111,7 +111,8 @@ if __name__ == "__main__":
     if args.machine:
         gpapply(None)
     else:
-        subparsers = parser.add_subparsers()
+        subparsers = parser.add_subparsers(dest='parser')
+        subparsers.required = True
 
         apply_parser = subparsers.add_parser('apply')
         apply_parser.add_argument('-M', help='Apply mode, possible values: logon, startup, or refresh')

@@ -1,3 +1,8 @@
+import logging, os, sys
+from samba.gpclass import apply_gp
+from samba.param import LoadParm
+from samba.credentials import Credentials
+
 # Get a list of modules names
 def list_modules(filename):
     from os import listdir
@@ -31,7 +36,25 @@ def get_gp_exts_from_module(parent):
                 parent_gp_exts.append(cls[-1])
     return parent_gp_exts
 
-from gpmachine import *
+from gp_exts.gpmachine import *
 machine_gp_exts = get_gp_exts_from_module(gpmachine)
-from gpuser import *
+from gp_exts.gpuser import *
 user_gp_exts = get_gp_exts_from_module(gpuser)
+
+def user_policy_apply(user, password):
+    logger = logging.getLogger('gpupdate')
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(logging.WARNING)
+    lp = LoadParm()
+    lp.load_default()
+    creds = Credentials()
+    creds.guess(lp)
+    creds.set_username(user)
+    creds.set_password(password)
+    gp_extensions = []
+    for ext in user_gp_exts:
+        gp_extensions.append(ext(logger, creds))
+    cache_dir = lp.get('cache directory')
+    store = GPOStorage(os.path.join(cache_dir, 'gpo.tdb'))
+    apply_gp(lp, creds, None, logger, store, gp_extensions)
+

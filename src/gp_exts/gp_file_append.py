@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from samba.gpclass import gp_ext
 import re, os.path, hashlib
+import six
 
 class gp_file_append:
     def __init__(self, filename):
@@ -18,6 +19,8 @@ class gp_file_append:
             data = open(self.filename, 'r').read()
         else:
             data = ''
+        if six.PY3:
+            data = data.encode('utf-8')
         checksum = hashlib.sha256(data).digest()
         return (data, checksum)
 

@@ -25,29 +25,10 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const
 	ret = pam_get_item(pamh, PAM_AUTHTOK, &password);
 
 	Py_Initialize();
-	asprintf(&cmd, "import logging, os, sys\n"
-                   "import gp_exts\n"
-				   "from samba.gpclass import apply_gp\n"
-				   "from samba.param import LoadParm\n"
-				   "from samba.credentials import Credentials\n"
-				   "import gp_exts\n"
-				   "logger = logging.getLogger('gpupdate')\n"
-				   "logger.addHandler(logging.StreamHandler(sys.stdout))\n"
-				   "logger.setLevel(logging.WARNING)\n"
-				   "lp = LoadParm()\n"
-				   "lp.load_default()\n"
-				   "creds = Credentials()\n"
-				   "creds.guess(lp)\n"
-				   "creds.set_username('%s')\n"
-				   "creds.set_password('%s')\n"
-				   "gp_extensions = []\n"
-				   "for ext in gp_exts.user_gp_exts:\n"
-				   "    gp_extensions.append(ext(logger, creds))\n"
-				   "cache_dir = lp.get('cache directory')\n"
-				   "store = GPOStorage(os.path.join(cache_dir, 'gpo.tdb'))\n"
-				   "apply_gp(lp, creds, None, logger, store, gp_extensions)\n",
-			 user, password
-		);
+    asprintf(&cmd, "import gp_exts\n"
+                   "gp_exts.user_policy_apply('%s', '%s')\n",
+             user, password
+        );
 	PyRun_SimpleString(cmd);
 	free(cmd);
 
