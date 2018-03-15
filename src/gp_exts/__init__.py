@@ -15,7 +15,7 @@ def get_base(cls):
     base = None
     bases = cls.__bases__
     while len(bases) == 1 and bases[-1].__name__ != 'object':
-	base = bases[0]
+        base = bases[0]
         bases = base.__bases__
     return base
 

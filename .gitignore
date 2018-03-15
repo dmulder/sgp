@@ -111,3 +111,15 @@ Makefile
 config.status
 src/sgp
 src/install_files
+
+compile
+config.guess
+config.sub
+depcomp
+libtool
+ltmain.sh
+.deps
+.libs
+*.la
+*.lo
+*.o

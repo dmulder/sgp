@@ -12,8 +12,8 @@ class gp_file_append:
 
     def __get_file_data(self):
         if not os.path.exists(os.path.dirname(self.filename)):
-            raise Exception, 'path %s not found' % \
-                os.path.dirname(self.filename)
+            raise Exception('path %s not found' % \
+                os.path.dirname(self.filename))
         if os.path.exists(self.filename):
             data = open(self.filename, 'r').read()
         else:
@@ -42,8 +42,8 @@ class gp_file_append:
     def set_section(self, results):
         _, checksum = self.__get_file_data()
         if checksum != self.checksum:
-            raise Exception, '%s was modified elsewhere, checksum failed' % \
-                self.filename
+            raise Exception('%s was modified elsewhere, checksum failed' % \
+                self.filename)
         if results.strip():
             results = self.section + '\n' + results + '\n' + self.section_end
             if self.start and self.end:
@@ -79,7 +79,7 @@ class ini_file_append:
     def __set_section(self):
         results = '\n'.join([
             '%s=%s' % (key, val) \
-                for key, val in self.vals.iteritems() if key
+                for key, val in self.vals.items() if key
         ])
         self.append.set_section(results)
 
