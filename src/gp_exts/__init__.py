@@ -20,7 +20,7 @@ def list_modules(filename):
 def get_base(cls):
     base = None
     bases = cls.__bases__
-    while len(bases) == 1 and bases[-1].__name__ != 'object':
+    while len(bases) > 0 and bases[-1].__name__ != 'object':
         base = bases[0]
         bases = base.__bases__
     return base
@@ -46,6 +46,7 @@ def user_policy_apply(user, password):
     logger = logging.getLogger('gpupdate')
     logger.addHandler(logging.StreamHandler(sys.stderr))
     logger.setLevel(logging.WARNING)
+    user = user.split('\\')[-1]
     lp = LoadParm()
     lp.load_default()
     creds = Credentials()

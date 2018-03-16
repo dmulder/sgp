@@ -7,8 +7,12 @@ from subprocess import Popen, PIPE
 proxy_enable = True
 use_same_proxy = False
 
+user_creds = None
+
 class inf_to_profile(file_to):
     def __init__(self, *args):
+        global user_creds
+        self.creds = user_creds
         super(inf_to_profile, self).__init__(*args)
         self.filename = os.path.join(
             pwd.getpwnam(self.creds.get_principal()).pw_dir,
@@ -88,6 +92,8 @@ class gp_browser_ext(gp_inf_ext, gp_user_ext):
         return os.path.join(rootpath, 'USER/MICROSOFT/IEAK/install.ins')
 
     def apply_map(self):
+        global user_creds
+        user_creds = self.creds
         return { 'Proxy' : { 'Proxy_Enable' : ('proxy_enable', inf_to_profile),
                              'HTTP_Proxy_Server' : ('http_proxy',
                                                     inf_to_profile),
