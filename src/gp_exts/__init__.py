@@ -1,7 +1,8 @@
 import logging, os, sys
-from samba.gpclass import apply_gp
+from samba.gpclass import apply_gp, GPOStorage
 from samba.param import LoadParm
 from samba.credentials import Credentials
+from samba import NTSTATUSError
 
 # Get a list of modules names
 def list_modules(filename):
@@ -43,7 +44,7 @@ user_gp_exts = get_gp_exts_from_module(gpuser)
 
 def user_policy_apply(user, password):
     logger = logging.getLogger('gpupdate')
-    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.addHandler(logging.StreamHandler(sys.stderr))
     logger.setLevel(logging.WARNING)
     lp = LoadParm()
     lp.load_default()
@@ -56,5 +57,8 @@ def user_policy_apply(user, password):
         gp_extensions.append(ext(logger, creds))
     cache_dir = lp.get('cache directory')
     store = GPOStorage(os.path.join(cache_dir, 'gpo.tdb'))
-    apply_gp(lp, creds, None, logger, store, gp_extensions)
+    try:
+        apply_gp(lp, creds, None, logger, store, gp_extensions)
+    except NTSTATUSError as e:
+        print(e.message)
 

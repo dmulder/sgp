@@ -1,5 +1,6 @@
 from samba.gpclass import gp_ext, file_to, gp_inf_ext
 from gp_exts.gp_file_append import ini_file_append
+from gp_exts.gp_user_ext import gp_user_ext
 import os, pwd
 from subprocess import Popen, PIPE
 
@@ -81,7 +82,7 @@ class inf_to_profile(file_to):
     def __str__(self):
         return 'Proxy'
 
-class gp_browser_ext(gp_inf_ext):
+class gp_browser_ext(gp_inf_ext, gp_user_ext):
 
     def list(self, rootpath):
         return os.path.join(rootpath, 'USER/MICROSOFT/IEAK/install.ins')

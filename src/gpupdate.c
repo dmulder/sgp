@@ -25,8 +25,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const
 	ret = pam_get_item(pamh, PAM_AUTHTOK, &password);
 
 	Py_Initialize();
-    asprintf(&cmd, "import gp_exts\n"
-                   "gp_exts.user_policy_apply('%s', '%s')\n",
+    asprintf(&cmd, "from gp_exts import user_policy_apply\n"
+                   "user_policy_apply('%s', '%s')\n",
              user, password
         );
 	PyRun_SimpleString(cmd);
