@@ -2,7 +2,7 @@ AC_INIT([sgp], [0.1])
 
 AM_INIT_AUTOMAKE
 
-AM_PATH_PYTHON([3.6])
+AM_PATH_PYTHON([2.7])
 AX_PYTHON_DEVEL
 PYTHON_CFLAGS=`${PYTHON}-config --cflags`
 PYTHON_LDFLAGS=`${PYTHON}-config --libs`
