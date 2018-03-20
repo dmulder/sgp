@@ -42,11 +42,22 @@ machine_gp_exts = get_gp_exts_from_module(gpmachine)
 from gp_exts.gpuser import *
 user_gp_exts = get_gp_exts_from_module(gpuser)
 
+import syslog
+class Logger:
+    def warn(self, msg):
+        syslog.syslog(syslog.LOG_ERR, msg)
+
+    fatal = warn
+    critical = warn
+    debug = warn
+    error = warn
+    info = warn
+    log = warn
+    warning = warn
+
 def user_policy_apply(user, password):
-    logger = logging.getLogger('gpupdate')
-    logger.addHandler(logging.StreamHandler(sys.stderr))
-    logger.setLevel(logging.WARNING)
     user = user.split('\\')[-1]
+    logger = Logger()
     lp = LoadParm()
     lp.load_default()
     creds = Credentials()
@@ -61,5 +72,5 @@ def user_policy_apply(user, password):
     try:
         apply_gp(lp, creds, None, logger, store, gp_extensions)
     except NTSTATUSError as e:
-        print(e.message)
+        logger.info(e.message)
 
