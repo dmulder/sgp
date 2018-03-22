@@ -20,11 +20,10 @@ Name:           sgp
 Version:        0.1
 Release:        0
 Summary:        Group Policy client apply for Samba
-License:        GPL-3.0
+License:        GPL-2.0
 Group:          Productivity/Networking/Samba
 Url:            http://www.github.com/dmulder/sgp
 Source:         https://github.com/dmulder/sgp/archive/v%{version}.tar.gz
-BuildArch:      noarch
 Requires:       samba-winbind
 Requires:       samba-python
 BuildRequires:  autoconf
@@ -32,9 +31,12 @@ BuildRequires:  automake
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  gcc
+BuildRequires:  libtool
+BuildRequires:  pam-devel
+BuildRequires:  python-rpm-macros
 
 %description
-Group Policy client apply for Samba
+A tool for applying Group Policy via samba/winbind.
 
 %prep
 %setup -q
@@ -46,6 +48,13 @@ make
 
 %install
 make DESTDIR=$RPM_BUILD_ROOT install
+mkdir -p $RPM_BUILD_ROOT/%{_lib}/security
+mv $RPM_BUILD_ROOT/%{_libdir}/security/pam_gpupdate.so $RPM_BUILD_ROOT/%{_lib}/security/
+rm $RPM_BUILD_ROOT/%{_libdir}/security/pam_gpupdate.*
+rm $RPM_BUILD_ROOT/%{python_sitelib}/gp_exts/*.pyc
+rm $RPM_BUILD_ROOT/%{python_sitelib}/gp_exts/gpmachine/*.pyc
+rm $RPM_BUILD_ROOT/%{python_sitelib}/gp_exts/gpuser/*.pyc
+rm $RPM_BUILD_ROOT/%{python_sitelib}/gp_exts-*.egg-info
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -53,5 +62,13 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %files
 %defattr(-,root,root)
 %{_bindir}/sgp
+%dir %{python_sitelib}/gp_exts
+%dir %{python_sitelib}/gp_exts/gpmachine
+%dir %{python_sitelib}/gp_exts/gpuser
+%{python_sitelib}/gp_exts/*.py
+%{python_sitelib}/gp_exts/gpmachine/*.py
+%{python_sitelib}/gp_exts/gpuser/*.py
+/%{_lib}/security/pam_gpupdate.so
+
 
 %changelog
