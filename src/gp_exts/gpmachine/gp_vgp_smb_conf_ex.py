@@ -1,5 +1,5 @@
 import os.path, re
-from samba.gpclass import gp_ext, file_to
+from samba.gpclass import gp_ext, gp_ext_setter
 import xml.etree.ElementTree as etree
 try:
     from ConfigParser import ConfigParser
@@ -49,7 +49,7 @@ class SMBConfigParser(ConfigParser):
                 if isinstance(val, list):
                     options[name] = '\n'.join(val)
 
-class smb_conf_setter(file_to):
+class smb_conf_setter(gp_ext_setter):
     def set_smb_conf(self, val):
         global smb_conf
         conf = SMBConfigParser()
@@ -79,6 +79,9 @@ class smb_conf_setter(file_to):
         return self
 
     def __getitem__(self, key):
+        return (self.set_smb_conf, self.explicit)
+
+    def get(self, key):
         return (self.set_smb_conf, self.explicit)
 
     def __str__(self):

@@ -1,11 +1,11 @@
-from samba.gpclass import gp_ext, file_to
+from samba.gpclass import gp_ext, gp_ext_setter
 from gp_exts.gp_file_append import ini_file_append
 import xml.etree.ElementTree as etree
 import re, os, os.path
 
 sysconfdir = '/etc'
 
-class xml_to_env(file_to):
+class xml_to_env(gp_ext_setter):
 
     def set_env_var(self, val):
         global sysconfdir

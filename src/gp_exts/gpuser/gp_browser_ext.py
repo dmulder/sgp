@@ -1,4 +1,4 @@
-from samba.gpclass import gp_ext, file_to, gp_inf_ext
+from samba.gpclass import gp_ext, gp_ext_setter, gp_inf_ext
 from gp_exts.gp_file_append import ini_file_append
 from gp_exts.gp_user_ext import gp_user_ext
 import os, pwd
@@ -9,7 +9,7 @@ use_same_proxy = False
 
 user_creds = None
 
-class inf_to_profile(file_to):
+class inf_to_profile(gp_ext_setter):
     def __init__(self, *args):
         global user_creds
         self.creds = user_creds
