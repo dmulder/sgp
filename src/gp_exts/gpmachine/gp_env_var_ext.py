@@ -5,9 +5,9 @@ import re, os, os.path
 
 sysconfdir = '/etc'
 
-class xml_to_env(gp_ext_setter):
+class gp_environment_variable_ext(gp_ext):
 
-    def set_env_var(self, val):
+    def set_env_var(self, attribute, val):
         global sysconfdir
         if type(val) is not dict:
             val = { 'value': val, 'action': 'U' }
@@ -17,7 +17,7 @@ class xml_to_env(gp_ext_setter):
         # what we intend. So, ignore PATH variables that contain ';'. Also
         # ensure the first character in the PATH is something valid (rather
         # than C:\ or something).
-        if val['value'] and self.attribute == 'PATH' and \
+        if val['value'] and attribute == 'PATH' and \
            (';' in val['value'] or \
            val['value'][0] not in ['/', '$', '~', '.']):
             self.logger.info('Ignored PATH variable assignment due to it\'s' +\
@@ -26,82 +26,50 @@ class xml_to_env(gp_ext_setter):
 
         profile = ini_file_append(os.path.join(sysconfdir, 'profile'))
 
-        old_val = profile[self.attribute]
+        old_val = profile[attribute]
         self.logger.info('Environment Variable %s was changed from %s to %s' \
-                         % (self.attribute, old_val, val['value']))
+                         % (attribute, old_val, val['value']))
 
         if val['value'] == None:
-            del profile[self.attribute]
+            del profile[attribute]
         # Update, Replace, and Create all really do the same thing
         elif val['action'] == 'U' or \
              val['action'] == 'R' or \
              val['action'] == 'C':
-            if self.attribute == 'PATH' and \
+            if attribute == 'PATH' and \
                'partial' in val and \
                val['partial'] == '1':
-                profile[self.attribute] = '$PATH:%s' % val['value']
+                profile[attribute] = '$PATH:%s' % val['value']
             else:
-                profile[self.attribute] = val['value']
+                profile[attribute] = val['value']
         # Remove should blank the variable
         elif val['action'] == 'D':
-            profile[self.attribute] = ''
+            profile[attribute] = ''
 
-        self.gp_db.store(str(self), self.attribute, old_val)
-
-    def mapper(self):
-        return self
-
-    def __getitem__(self, key):
-        return (self.set_env_var, self.explicit)
-
-    def __str__(self):
-        return 'Environment'
-
-class env_var_unapply_map:
-    def __getitem__(self, key):
-        return (key, xml_to_env)
-
-    def __contains__(self, key):
-        return True
-
-class gp_environment_variable_ext(gp_ext):
-
-    def list(self, rootpath):
-        return os.path.join(rootpath,
-           'MACHINE/Preferences/EnvironmentVariables/EnvironmentVariables.xml')
-
-    def apply_map(self):
-        if not hasattr(self, 'xml_conf'):
-            return { 'Environment' : env_var_unapply_map() }
-        else:
-            return {
-                'Environment' : {
-                    a.attrib['name']: (a.attrib['name'], xml_to_env) \
-                        for a in self.xml_conf.findall('EnvironmentVariable')
-                }
-            }
+        self.gp_db.store(str(self), attribute, old_val)
 
     def read(self, policy):
-        self.xml_conf = etree.fromstring(policy)
-        apply_map = self.apply_map()['Environment']
-        ret = False
+        return etree.fromstring(policy)
 
-        for env_var in self.xml_conf.findall('EnvironmentVariable'):
-            (att, setter) = apply_map.get(env_var.attrib['name'])
-            ret = True
-            setter(self.logger,
-                   self.ldb,
-                   self.gp_db,
-                   self.lp,
-                   att,
-                   env_var.find('Properties').attrib).update_samba()
-            self.gp_db.commit()
-        return ret
+    def process_group_policy(self, deleted_gpo_list, changed_gpo_list):
+        xml_file = \
+            'MACHINE/Preferences/EnvironmentVariables/EnvironmentVariables.xml'
+        for gpo in deleted_gpo_list:
+            pass
+
+        for gpo in changed_gpo_list:
+            if gpo.file_sys_path:
+                self.gp_db.set_guid(gpo.name)
+                path = gpo.file_sys_path.split('\\sysvol\\')[-1]
+                xml_conf = self.parse(os.path.join(path, xml_file))
+                if not xml_conf:
+                    continue
+
+                for env_var in xml_conf.findall('EnvironmentVariable'):
+                    att = env_var.attrib['name']
+                    self.set_env_var(att, env_var.find('Properties').attrib)
+                    self.gp_db.commit()
 
     def __str__(self):
         return 'Environment GPO extension'
-
-    @staticmethod
-    def disabled_file():
-        return os.path.splitext(os.path.abspath(__file__))[0] + '.py.disabled'
 
