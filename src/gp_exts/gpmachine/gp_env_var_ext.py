@@ -55,7 +55,11 @@ class gp_environment_variable_ext(gp_ext):
         xml_file = \
             'MACHINE/Preferences/EnvironmentVariables/EnvironmentVariables.xml'
         for gpo in deleted_gpo_list:
-            pass
+            self.gp_db.set_guid(gpo[0])
+            for section in gpo[1].keys():
+                for key, value in gpo[1][section].items():
+                    self.set_env_var(key, value)
+                    self.gp_db.commit()
 
         for gpo in changed_gpo_list:
             if gpo.file_sys_path:
