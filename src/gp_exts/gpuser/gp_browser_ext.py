@@ -1,6 +1,5 @@
 from samba.gpclass import gp_ext, gp_ext_setter, gp_inf_ext
-from gp_exts.gp_file_append import ini_file_append
-from gp_exts.gp_user_ext import gp_user_ext
+from samba.gp_file_append import ini_file_append
 import os, pwd
 from subprocess import Popen, PIPE
 
@@ -86,15 +85,12 @@ class inf_to_profile(gp_ext_setter):
     def __str__(self):
         return 'Proxy'
 
-class gp_browser_ext(gp_inf_ext, gp_user_ext):
+class gp_browser_ext(gp_inf_ext):
 
-    def list(self, rootpath):
-        return os.path.join(rootpath, 'USER/MICROSOFT/IEAK/install.ins')
-
-    def apply_map(self):
+    def process_group_policy(self, deleted_gpo_list, changed_gpo_list):
         global user_creds
         user_creds = self.creds
-        return { 'Proxy' : { 'Proxy_Enable' : ('proxy_enable', inf_to_profile),
+        apmp = { 'Proxy' : { 'Proxy_Enable' : ('proxy_enable', inf_to_profile),
                              'HTTP_Proxy_Server' : ('http_proxy',
                                                     inf_to_profile),
                              'Secure_Proxy_Server' : ('https_proxy',
@@ -105,11 +101,62 @@ class gp_browser_ext(gp_inf_ext, gp_user_ext):
                                                  inf_to_profile),
                            },
                }
+        inf_file = 'USER/MICROSOFT/IEAK/install.ins'
+        for gpo in deleted_gpo_list:
+            self.gp_db.set_guid(gpo[0])
+            for section in gpo[1].keys():
+                current_section = apmp.get(section)
+                if not current_section:
+                    continue
+                for key, value in gpo[1][section].items():
+                    setter = None
+                    for _, tup in current_section.items():
+                        if tup[0] == key:
+                            setter = tup[1]
+                    if setter:
+                        value = value.encode('ascii', 'ignore')
+                        setter(self.logger, self.gp_db, self.lp, key,
+                               value).delete()
+                        self.gp_db.delete(section, key)
+                        self.gp_db.commit()
+
+        for gpo in changed_gpo_list:
+            if gpo.file_sys_path:
+                self.gp_db.set_guid(gpo.name)
+                path = gpo.file_sys_path.split('\\sysvol\\')[-1]
+                inf_conf = self.parse(os.path.join(path, inf_file))
+                if not inf_conf:
+                    continue
+                for section in inf_conf.sections():
+                    current_section = apmp.get(section)
+                    if not current_section:
+                        continue
+                    for key, value in inf_conf.items(section):
+                        if current_section.get(key):
+                            (att, setter) = current_section.get(key)
+                            value = value.encode('ascii', 'ignore')
+                            setter(self.logger, self.gp_db, self.lp, att,
+                                   value).update_samba()
+                            self.gp_db.commit()
 
     def __str__(self):
         return 'Browser GPO extension'
 
-    @staticmethod
-    def disabled_file():
-        return os.path.splitext(os.path.abspath(__file__))[0] + '.py.disabled'
+if __name__ == "__main__":
+    from samba import gpo
+    import optparse
+    from samba import getopt as options
+    guid = '{BADA9F20-A366-41C7-A491-00F5AA18F790}'
+    name = 'gp_browser_ext'
+    path = os.path.abspath(__file__)
+
+    parser = optparse.OptionParser('%s [options]' % name)
+    sambaopts = options.SambaOptions(parser)
+    parser.add_option_group(sambaopts)
+
+    (opts, args) = parser.parse_args()
+    lp = sambaopts.get_loadparm()
+
+    gpo.register_gp_extension(guid, name, path, smb_conf=lp.configfile,
+                              machine=False, user=True)
 
